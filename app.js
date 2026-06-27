@@ -10,7 +10,7 @@
      -------------------------------------------------------------------------- */
   var STORAGE_KEY = 'volleyball-scoreboard-v1';
   var INSTALL_BANNER_KEY = 'volleyball-install-banner-dismissed';
-  var APP_VERSION = '1.4.0'; /* incrementar a cada deploy */
+  var APP_VERSION = '1.5.0'; /* incrementar a cada deploy */
   var SWIPE_THRESHOLD = 70; /* px — distância mínima para desfazer ponto */
   var TAP_MAX_MOVE = 12;     /* px — movimento máximo para considerar tap */
   var TAP_MAX_DURATION = 350; /* ms */
@@ -960,10 +960,53 @@
   function registerServiceWorker() {
     if (!('serviceWorker' in navigator)) return;
 
-    window.addEventListener('load', function () {
-      navigator.serviceWorker.register('/sw.js').catch(function () {
-        /* Falha silenciosa — app funciona sem SW */
+    var hadController = !!navigator.serviceWorker.controller;
+    var refreshing = false;
+    var registrationRef = null;
+
+    function checkForUpdates() {
+      if (registrationRef) {
+        registrationRef.update();
+      }
+    }
+
+    navigator.serviceWorker.addEventListener('controllerchange', function () {
+      if (!hadController) {
+        hadController = true;
+        return;
+      }
+      if (refreshing) return;
+      refreshing = true;
+      window.location.reload();
+    });
+
+    navigator.serviceWorker.register('/sw.js').then(function (registration) {
+      registrationRef = registration;
+
+      registration.addEventListener('updatefound', function () {
+        var newWorker = registration.installing;
+        if (!newWorker) return;
+
+        newWorker.addEventListener('statechange', function () {
+          if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
+            checkForUpdates();
+          }
+        });
       });
+
+      checkForUpdates();
+    }).catch(function () {
+      /* Falha silenciosa — app funciona sem SW */
+    });
+
+    document.addEventListener('visibilitychange', function () {
+      if (document.visibilityState === 'visible') {
+        checkForUpdates();
+      }
+    });
+
+    window.addEventListener('pageshow', function () {
+      checkForUpdates();
     });
   }
 

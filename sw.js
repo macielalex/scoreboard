@@ -1,9 +1,10 @@
 /**
- * Service Worker — estratégia app-shell
- * Cache-first para assets estáticos; fallback para offline.html em navegação sem rede.
- * Incremente CACHE_NAME a cada deploy para invalidar caches antigos.
+ * Service Worker — app-shell com atualização automática
+ * HTML/JS/CSS: network-first (rede ao abrir; cache só offline).
+ * Ícones e estáticos: cache-first.
+ * Incremente CACHE_NAME a cada deploy para limpar caches antigos.
  */
-var CACHE_NAME = 'scoreboard-v2';
+var CACHE_NAME = 'scoreboard-v3';
 
 var PRECACHE_URLS = [
   '/',
@@ -17,7 +18,46 @@ var PRECACHE_URLS = [
   '/icons/icon-maskable-512.png'
 ];
 
-/* Instalação: pré-cache dos assets do app-shell */
+var NETWORK_FIRST_PATHS = ['/', '/index.html', '/app.js', '/styles.css'];
+
+function isNetworkFirst(url) {
+  return NETWORK_FIRST_PATHS.indexOf(url.pathname) !== -1;
+}
+
+function putInCache(request, response) {
+  if (!response || response.status !== 200 || response.type !== 'basic') return;
+  var clone = response.clone();
+  caches.open(CACHE_NAME).then(function (cache) {
+    cache.put(request, clone);
+  });
+}
+
+function networkFirst(request) {
+  return fetch(request).then(function (response) {
+    putInCache(request, response);
+    return response;
+  }).catch(function () {
+    return caches.match(request);
+  });
+}
+
+function cacheFirst(request) {
+  return caches.match(request).then(function (cached) {
+    if (cached) return cached;
+
+    return fetch(request).then(function (response) {
+      putInCache(request, response);
+      return response;
+    });
+  });
+}
+
+function offlineFallback() {
+  return caches.match('/index.html').then(function (cached) {
+    return cached || caches.match('/offline.html');
+  });
+}
+
 self.addEventListener('install', function (event) {
   event.waitUntil(
     caches.open(CACHE_NAME).then(function (cache) {
@@ -28,7 +68,6 @@ self.addEventListener('install', function (event) {
   );
 });
 
-/* Ativação: remove caches de versões anteriores */
 self.addEventListener('activate', function (event) {
   event.waitUntil(
     caches.keys().then(function (keys) {
@@ -43,36 +82,30 @@ self.addEventListener('activate', function (event) {
   );
 });
 
-/* Fetch: cache-first para GET; navegação offline cai em offline.html */
 self.addEventListener('fetch', function (event) {
   if (event.request.method !== 'GET') return;
 
   var url = new URL(event.request.url);
 
-  /* Ignora requisições de outros domínios (CDN de confetti/qrcode) */
   if (url.origin !== self.location.origin) return;
 
-  event.respondWith(
-    caches.match(event.request).then(function (cached) {
-      if (cached) return cached;
-
-      return fetch(event.request).then(function (response) {
-        if (!response || response.status !== 200 || response.type !== 'basic') {
-          return response;
-        }
-
-        var clone = response.clone();
-        caches.open(CACHE_NAME).then(function (cache) {
-          cache.put(event.request, clone);
-        });
-
-        return response;
+  if (event.request.mode === 'navigate' || isNetworkFirst(url)) {
+    event.respondWith(
+      networkFirst(event.request).then(function (response) {
+        if (response) return response;
+        return offlineFallback();
       }).catch(function () {
-        if (event.request.mode === 'navigate') {
-          return caches.match('/offline.html');
-        }
-        return undefined;
-      });
+        return offlineFallback();
+      })
+    );
+    return;
+  }
+
+  event.respondWith(
+    cacheFirst(event.request).catch(function () {
+      if (event.request.mode === 'navigate') {
+        return offlineFallback();
+      }
     })
   );
 });
