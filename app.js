@@ -25,13 +25,15 @@
     winByTwo: false,
     celebration: true,
     gameOver: false,
-    winner: null          /* 'a' | 'b' | null */
+    winner: null,         /* 'a' | 'b' | null */
+    gameOverOverlayDismissed: false
   };
 
   var confettiTimer = null;
   var deferredInstallPrompt = null;
   var qrcodeInstance = null;
   var renameTarget = null;
+  var gameOverShownAt = 0;
 
   /* --------------------------------------------------------------------------
      Referências DOM
@@ -80,6 +82,10 @@
     btnCopyUrlMobile: document.getElementById('btn-copy-url-mobile'),
     btnWhatsapp: document.getElementById('btn-whatsapp'),
     btnWhatsappMobile: document.getElementById('btn-whatsapp-mobile'),
+    btnShareImage: document.getElementById('btn-share-image'),
+    btnShareImageWin: document.getElementById('btn-share-image-win'),
+    btnResetWin: document.getElementById('btn-reset-win'),
+    scoreboard: document.getElementById('scoreboard'),
     inputRename: document.getElementById('input-rename'),
     btnSaveRename: document.getElementById('btn-save-rename')
   };
@@ -207,10 +213,20 @@
 
       var winnerName = state.winner === 'a' ? state.nameA : state.nameB;
       el.gameOverText.textContent = winnerName + ' venceu!';
-      el.gameOver.classList.remove('hidden');
+      if (state.gameOverOverlayDismissed) {
+        el.gameOver.classList.add('hidden');
+      } else {
+        el.gameOver.classList.remove('hidden');
+      }
     } else {
       el.gameOver.classList.add('hidden');
     }
+  }
+
+  function dismissGameOverOverlay() {
+    if (!state.gameOver || state.gameOverOverlayDismissed) return;
+    state.gameOverOverlayDismissed = true;
+    el.gameOver.classList.add('hidden');
   }
 
   function pulseScore(team) {
@@ -264,6 +280,8 @@
   function declareWinner(team, silent) {
     state.gameOver = true;
     state.winner = team;
+    state.gameOverOverlayDismissed = false;
+    gameOverShownAt = Date.now();
     saveState();
     renderGameOverState();
 
@@ -303,6 +321,7 @@
     if (state.gameOver) {
       state.gameOver = false;
       state.winner = null;
+      state.gameOverOverlayDismissed = false;
       stopConfetti();
       el.gameOver.classList.add('hidden');
     }
@@ -313,13 +332,14 @@
     checkWinner();
   }
 
-  function resetMatch() {
-    if (!confirm('Reiniciar a partida? Os placares serão zerados.')) return;
+  function resetMatch(skipConfirm) {
+    if (!skipConfirm && !confirm('Reiniciar a partida? Os placares serão zerados.')) return;
 
     state.scoreA = 0;
     state.scoreB = 0;
     state.gameOver = false;
     state.winner = null;
+    state.gameOverOverlayDismissed = false;
     stopConfetti();
     saveState();
     renderScores();
@@ -617,6 +637,135 @@
     window.open(waUrl, '_blank', 'noopener,noreferrer');
   }
 
+  function getScoreboardShareText() {
+    return state.nameA + ' ' + state.scoreA + ' x ' + state.scoreB + ' ' + state.nameB + ' — Placar de Vôlei';
+  }
+
+  function downloadImageBlob(blob) {
+    var url = URL.createObjectURL(blob);
+    var a = document.createElement('a');
+    a.href = url;
+    a.download = 'placar-volei-' + state.scoreA + 'x' + state.scoreB + '.png';
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    setTimeout(function () { URL.revokeObjectURL(url); }, 1000);
+  }
+
+  function shareImageBlob(blob) {
+    var fileName = 'placar-volei-' + state.scoreA + 'x' + state.scoreB + '.png';
+    var file;
+
+    try {
+      file = new File([blob], fileName, { type: 'image/png' });
+    } catch (e) {
+      downloadImageBlob(blob);
+      return Promise.resolve();
+    }
+
+    var shareData = {
+      title: 'Placar de Vôlei',
+      text: getScoreboardShareText(),
+      files: [file]
+    };
+
+    if (navigator.share) {
+      var canShareFiles = !navigator.canShare || navigator.canShare({ files: [file] });
+      if (canShareFiles) {
+        return navigator.share(shareData).catch(function (err) {
+          if (err && err.name === 'AbortError') return;
+          downloadImageBlob(blob);
+        });
+      }
+    }
+
+    downloadImageBlob(blob);
+    return Promise.resolve();
+  }
+
+  function captureScoreboardImage() {
+    if (typeof html2canvas !== 'function') {
+      alert('Captura de imagem indisponível. Verifique sua conexão e tente novamente.');
+      return Promise.reject();
+    }
+
+    document.body.classList.add('is-capturing');
+
+    return html2canvas(el.scoreboard, {
+      scale: 2,
+      useCORS: true,
+      backgroundColor: null,
+      logging: false,
+      ignoreElements: function (node) {
+        return node.classList && node.classList.contains('team-hint');
+      },
+      onclone: function (doc) {
+        if (!state.gameOver || !state.winner) return;
+
+        var winnerEl = doc.getElementById('team-' + state.winner);
+        var loserKey = state.winner === 'a' ? 'b' : 'a';
+        var loserEl = doc.getElementById('team-' + loserKey);
+        var trophyEl = doc.getElementById('trophy-' + state.winner);
+
+        if (winnerEl) {
+          winnerEl.style.overflow = 'visible';
+          winnerEl.style.boxShadow = 'none';
+          winnerEl.style.outline = '4px solid #facc15';
+          winnerEl.style.outlineOffset = '-4px';
+        }
+        if (loserEl) {
+          loserEl.style.filter = 'brightness(0.65) saturate(0.7)';
+        }
+        if (trophyEl) {
+          trophyEl.classList.remove('hidden');
+        }
+      }
+    }).then(function (canvas) {
+      return new Promise(function (resolve, reject) {
+        canvas.toBlob(function (blob) {
+          if (blob) resolve(blob);
+          else reject(new Error('blob vazio'));
+        }, 'image/png', 0.92);
+      });
+    }).finally(function () {
+      document.body.classList.remove('is-capturing');
+    });
+  }
+
+  function shareScoreboardAsImage(triggerBtn) {
+    var btn = triggerBtn || el.btnShareImage;
+    if (!btn) return;
+
+    var originalHtml = btn.innerHTML;
+    var hideGameOver = el.gameOver && !el.gameOver.classList.contains('hidden');
+
+    closeModal(el.modalShare);
+    btn.classList.add('is-loading');
+    btn.disabled = true;
+
+    if (hideGameOver) {
+      el.gameOver.classList.add('hidden');
+    }
+
+    setTimeout(function () {
+      captureScoreboardImage()
+        .then(function (blob) {
+          return shareImageBlob(blob);
+        })
+        .catch(function () {
+          alert('Não foi possível gerar a imagem do placar.');
+        })
+        .then(function () {
+          if (hideGameOver && state.gameOver) {
+            el.gameOver.classList.remove('hidden');
+          }
+          btn.classList.remove('is-loading');
+          btn.disabled = false;
+          btn.innerHTML = originalHtml;
+        });
+    }, 200);
+  }
+
   function copyShareUrl(feedbackEl) {
     var url = getShareUrl();
     var btn = feedbackEl || el.btnCopyUrl;
@@ -839,7 +988,7 @@
     setupTeamGestures(el.teamA, 'a');
     setupTeamGestures(el.teamB, 'b');
 
-    el.btnReset.addEventListener('click', resetMatch);
+    el.btnReset.addEventListener('click', function () { resetMatch(); });
 
     el.btnSettings.addEventListener('click', function () {
       syncSettingsForm();
@@ -868,6 +1017,34 @@
     if (el.btnWhatsappMobile) {
       el.btnWhatsappMobile.addEventListener('click', shareOnWhatsApp);
     }
+
+    if (el.btnShareImage) {
+      el.btnShareImage.addEventListener('click', function () {
+        shareScoreboardAsImage(el.btnShareImage);
+      });
+    }
+
+    if (el.btnShareImageWin) {
+      el.btnShareImageWin.addEventListener('click', function () {
+        shareScoreboardAsImage(el.btnShareImageWin);
+      });
+    }
+
+    if (el.btnResetWin) {
+      el.btnResetWin.addEventListener('click', function () {
+        resetMatch(true);
+      });
+    }
+
+    /* Fecha o banner de vitória ao tocar/clicar fora dele */
+    document.addEventListener('click', function (e) {
+      if (!state.gameOver || state.gameOverOverlayDismissed) return;
+      if (el.gameOver.classList.contains('hidden')) return;
+      if (Date.now() - gameOverShownAt < 400) return;
+      if (el.gameOver.contains(e.target)) return;
+      if (e.target.closest('.toolbar') || e.target.closest('.fab-bar')) return;
+      dismissGameOverOverlay();
+    });
 
     /* Impede que toque no nome dispare incremento de ponto */
     function blockGestureBubble(btn) {
