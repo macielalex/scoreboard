@@ -3,7 +3,7 @@
  * Cache-first para assets estáticos; fallback para offline.html em navegação sem rede.
  * Incremente CACHE_NAME a cada deploy para invalidar caches antigos.
  */
-var CACHE_NAME = 'scoreboard-v1';
+var CACHE_NAME = 'scoreboard-v2';
 
 var PRECACHE_URLS = [
   '/',

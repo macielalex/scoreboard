@@ -123,6 +123,7 @@ html, body {
    Scoreboard — duas metades em coluna (portrait) ou linha (landscape)
    -------------------------------------------------------------------------- */
 .scoreboard {
+  position: relative;
   display: grid;
   grid-template-rows: 1fr var(--divider-w) 1fr;
   grid-template-columns: 1fr;
@@ -158,6 +159,83 @@ html, body {
     width: 100%;
     height: auto;
   }
+}
+
+/* Crédito do autor */
+.credit {
+  margin: 0;
+  font-family: var(--font-ui);
+  line-height: 1.3;
+}
+
+.credit a {
+  color: inherit;
+  text-decoration: none;
+  font-weight: 600;
+}
+
+.credit a:hover,
+.credit a:focus-visible {
+  text-decoration: underline;
+}
+
+.credit--scoreboard {
+  position: fixed;
+  top: calc(var(--toolbar-h) + env(safe-area-inset-top, 0px) + 0.15rem);
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 95;
+  pointer-events: auto;
+  margin: 0;
+  padding: 0;
+  background: none;
+  border: none;
+  border-radius: 0;
+  box-shadow: none;
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+  font-size: clamp(0.6rem, 2.2vw, 0.8rem);
+  font-weight: 500;
+  color: rgba(255, 255, 255, 0.5);
+  letter-spacing: 0.02em;
+  line-height: 1.2;
+  text-align: center;
+  white-space: nowrap;
+  opacity: 0.45;
+}
+
+.credit--scoreboard a {
+  color: inherit;
+  font-weight: 500;
+}
+
+.credit--scoreboard a:hover,
+.credit--scoreboard a:focus-visible {
+  opacity: 1;
+}
+
+@media (max-height: 500px) {
+  .credit--scoreboard {
+    display: none;
+  }
+}
+
+.credit--share {
+  text-align: center;
+  font-size: clamp(0.6rem, 2.2vw, 0.8rem);
+  font-weight: 500;
+  color: var(--text-muted);
+  letter-spacing: 0.02em;
+  line-height: 1.2;
+  opacity: 0.65;
+  padding-top: 1rem;
+  margin-top: 0.25rem;
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.credit--share a {
+  color: inherit;
+  font-weight: 500;
 }
 
 .team {
@@ -434,8 +512,12 @@ html, body {
 }
 
 .modal-body--center {
+  display: flex;
+  flex-direction: column;
   align-items: center;
   text-align: center;
+  gap: 0.75rem;
+  width: 100%;
 }
 
 .modal-footer {
@@ -607,6 +689,29 @@ html, body {
   color: var(--text);
 }
 
+.btn-whatsapp {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  background: #25d366;
+  color: #fff;
+  width: 100%;
+  max-width: 280px;
+}
+
+.btn-whatsapp:hover,
+.btn-whatsapp:focus-visible {
+  background: #20bd5a;
+  color: #fff;
+}
+
+.modal-body--center .btn,
+.share-mobile-only .btn {
+  width: 100%;
+  max-width: 280px;
+}
+
 /* Compartilhar / QR */
 .share-desc {
   color: var(--text-muted);
@@ -615,15 +720,30 @@ html, body {
 }
 
 .qrcode {
+  display: inline-block;
   padding: 12px;
   background: #fff;
   border-radius: 8px;
   line-height: 0;
+  width: fit-content;
+  max-width: 100%;
 }
 
 .qrcode canvas,
 .qrcode img {
   display: block;
+  width: 200px;
+  height: 200px;
+}
+
+/* Após gerar, a lib oculta o canvas e exibe o img — só o canvas oculto não deve ocupar espaço */
+.qrcode canvas[style*="display: none"],
+.qrcode canvas[style*="display:none"] {
+  display: none !important;
+  width: 0 !important;
+  height: 0 !important;
+  padding: 0;
+  margin: 0;
 }
 
 .share-url {

@@ -78,6 +78,8 @@
     shareUrlMobile: document.getElementById('share-url-mobile'),
     btnCopyUrl: document.getElementById('btn-copy-url'),
     btnCopyUrlMobile: document.getElementById('btn-copy-url-mobile'),
+    btnWhatsapp: document.getElementById('btn-whatsapp'),
+    btnWhatsappMobile: document.getElementById('btn-whatsapp-mobile'),
     inputRename: document.getElementById('input-rename'),
     btnSaveRename: document.getElementById('btn-save-rename')
   };
@@ -604,8 +606,19 @@
     });
   }
 
+  function getShareUrl() {
+    return window.location.origin + '/';
+  }
+
+  function shareOnWhatsApp() {
+    var url = getShareUrl();
+    var text = 'Placar de Vôlei — acesse e instale no celular: ' + url;
+    var waUrl = 'https://wa.me/?text=' + encodeURIComponent(text);
+    window.open(waUrl, '_blank', 'noopener,noreferrer');
+  }
+
   function copyShareUrl(feedbackEl) {
-    var url = window.location.origin + '/';
+    var url = getShareUrl();
     var btn = feedbackEl || el.btnCopyUrl;
 
     function showCopied() {
@@ -632,7 +645,7 @@
   }
 
   function setShareUrls() {
-    var url = window.location.origin + '/';
+    var url = getShareUrl();
     el.shareUrl.textContent = url;
     if (el.shareUrlMobile) el.shareUrlMobile.textContent = url;
   }
@@ -846,6 +859,14 @@
 
     if (el.btnCopyUrlMobile) {
       el.btnCopyUrlMobile.addEventListener('click', function () { copyShareUrl(el.btnCopyUrlMobile); });
+    }
+
+    if (el.btnWhatsapp) {
+      el.btnWhatsapp.addEventListener('click', shareOnWhatsApp);
+    }
+
+    if (el.btnWhatsappMobile) {
+      el.btnWhatsappMobile.addEventListener('click', shareOnWhatsApp);
     }
 
     /* Impede que toque no nome dispare incremento de ponto */
