@@ -10,6 +10,7 @@
      -------------------------------------------------------------------------- */
   var STORAGE_KEY = 'volleyball-scoreboard-v1';
   var INSTALL_BANNER_KEY = 'volleyball-install-banner-dismissed';
+  var APP_VERSION = '1.4.0'; /* incrementar a cada deploy */
   var SWIPE_THRESHOLD = 70; /* px — distância mínima para desfazer ponto */
   var TAP_MAX_MOVE = 12;     /* px — movimento máximo para considerar tap */
   var TAP_MAX_DURATION = 350; /* ms */
@@ -90,7 +91,8 @@
     btnResetWin: document.getElementById('btn-reset-win'),
     scoreboard: document.getElementById('scoreboard'),
     inputRename: document.getElementById('input-rename'),
-    btnSaveRename: document.getElementById('btn-save-rename')
+    btnSaveRename: document.getElementById('btn-save-rename'),
+    appVersionShare: document.getElementById('app-version-share')
   };
 
   /* --------------------------------------------------------------------------
@@ -1145,6 +1147,10 @@
     bindUI();
     registerServiceWorker();
     setupInstallPrompt();
+
+    if (el.appVersionShare) {
+      el.appVersionShare.textContent = ' · v' + APP_VERSION;
+    }
 
     /* Se partida já estava encerrada ao reabrir, não repetir confete */
     if (state.gameOver && state.winner && state.celebration) {

@@ -238,6 +238,11 @@ html, body {
   font-weight: 500;
 }
 
+.credit__version {
+  font-weight: 400;
+  color: var(--text-muted);
+}
+
 .team {
   position: relative;
   display: flex;
