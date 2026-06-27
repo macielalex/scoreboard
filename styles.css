@@ -9,6 +9,7 @@
   --text: #f0f6fc;
   --text-muted: #8b949e;
   --toolbar-h: 48px;
+  --bottom-toolbar-h: 72px;
   --divider-w: 3px;
   --color-a: #1673e0;
   --color-b: #e63946;
@@ -109,13 +110,124 @@ html, body {
 }
 
 @media (max-width: 380px) {
-  .toolbar-btn__label {
+  .toolbar .toolbar-btn__label {
     display: none;
   }
 
-  .toolbar-btn--install {
+  .toolbar .toolbar-btn--install {
     min-width: 40px;
     padding: 8px;
+  }
+}
+
+/* --------------------------------------------------------------------------
+   Bottom toolbar — ações principais (mobile: base; desktop: topo)
+   -------------------------------------------------------------------------- */
+.bottom-toolbar {
+  position: fixed;
+  left: 0;
+  right: 0;
+  z-index: 100;
+  display: flex;
+  align-items: center;
+  pointer-events: none;
+}
+
+.bottom-toolbar .toolbar-btn {
+  pointer-events: auto;
+}
+
+/* Desktop / tablet: botões flutuantes no topo, sem faixa escura */
+@media (min-width: 601px) {
+  .toolbar {
+    z-index: 101;
+    background: transparent;
+  }
+
+  .bottom-toolbar {
+    top: 0;
+    bottom: auto;
+    justify-content: flex-end;
+    gap: 6px;
+    height: var(--toolbar-h);
+    padding: 0 8px;
+    padding-top: env(safe-area-inset-top, 0);
+    padding-right: 56px;
+    background: transparent;
+  }
+
+  .bottom-toolbar .toolbar-btn {
+    flex-direction: row;
+    min-width: 40px;
+    min-height: 40px;
+    padding: 8px;
+    gap: 0;
+    background: rgba(13, 17, 23, 0.88);
+    color: #f0f6fc;
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.3);
+  }
+
+  .bottom-toolbar .toolbar-btn:hover,
+  .bottom-toolbar .toolbar-btn:focus-visible {
+    background: rgba(13, 17, 23, 0.96);
+    color: #ffffff;
+    border-color: rgba(255, 255, 255, 0.32);
+  }
+
+  .bottom-toolbar .toolbar-btn__label {
+    display: none;
+  }
+}
+
+/* Mobile: barra fixa na base com ícone + texto */
+@media (max-width: 600px) {
+  .bottom-toolbar {
+    bottom: 0;
+    justify-content: space-around;
+    padding: 8px 16px;
+    padding-bottom: max(12px, env(safe-area-inset-bottom, 12px));
+    background: rgba(13, 17, 23, 0.92);
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+  }
+
+  .bottom-toolbar .toolbar-btn {
+    flex-direction: column;
+    gap: 4px;
+    min-width: 64px;
+    min-height: 56px;
+    padding: 6px 8px;
+  }
+
+  .bottom-toolbar .toolbar-btn__label {
+    display: block;
+    font-size: 11px;
+    font-weight: 500;
+    color: var(--text-muted);
+    line-height: 1.1;
+  }
+
+  .bottom-toolbar .toolbar-btn:hover .toolbar-btn__label,
+  .bottom-toolbar .toolbar-btn:focus-visible .toolbar-btn__label {
+    color: var(--text);
+  }
+
+  .scoreboard {
+    box-sizing: border-box;
+    padding-bottom: calc(var(--bottom-toolbar-h) + env(safe-area-inset-bottom, 0px) + 16px);
+  }
+
+  .game-over {
+    bottom: calc(var(--bottom-toolbar-h) + env(safe-area-inset-bottom, 0px) + 1rem);
+  }
+
+  .install-banner {
+    bottom: calc(var(--bottom-toolbar-h) + env(safe-area-inset-bottom, 0px));
+  }
+
+  .team-inner {
+    padding-bottom: 0.5rem;
   }
 }
 

@@ -1101,7 +1101,7 @@
       if (el.gameOver.classList.contains('hidden')) return;
       if (Date.now() - gameOverShownAt < 400) return;
       if (el.gameOver.contains(e.target)) return;
-      if (e.target.closest('.toolbar') || e.target.closest('.fab-bar')) return;
+      if (e.target.closest('.toolbar') || e.target.closest('.bottom-toolbar')) return;
       dismissGameOverOverlay();
     });
 
