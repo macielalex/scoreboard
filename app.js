@@ -13,6 +13,9 @@
   var SWIPE_THRESHOLD = 70; /* px — distância mínima para desfazer ponto */
   var TAP_MAX_MOVE = 12;     /* px — movimento máximo para considerar tap */
   var TAP_MAX_DURATION = 350; /* ms */
+  var MOUSE_SUPPRESS_MS = 500; /* ignora mouse fantasma após toque */
+
+  var suppressMouseUntil = 0;
 
   var state = {
     scoreA: 0,
@@ -416,11 +419,18 @@
     }, { passive: true });
 
     teamEl.addEventListener('touchend', function (e) {
+      if (!activePointer) return;
       var t = e.changedTouches[0];
+      if (!t) return;
       onEnd(t.clientX, t.clientY);
-    });
+      suppressMouseUntil = Date.now() + MOUSE_SUPPRESS_MS;
+      e.preventDefault();
+    }, { passive: false });
 
     teamEl.addEventListener('touchcancel', function () {
+      if (activePointer) {
+        suppressMouseUntil = Date.now() + MOUSE_SUPPRESS_MS;
+      }
       activePointer = false;
       teamEl.classList.remove('is-dragging');
     });
@@ -428,6 +438,10 @@
     /* Mouse (desktop) */
     teamEl.addEventListener('mousedown', function (e) {
       if (e.button !== 0) return;
+      if (Date.now() < suppressMouseUntil) {
+        e.preventDefault();
+        return;
+      }
       e.preventDefault();
       onStart(e.clientX, e.clientY);
 
